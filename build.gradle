@@ -1,0 +1,59 @@
+apply plugin: "java"
+
+def extraClasspath = files()
+task run(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    classpath extraClasspath
+    mainClass = "driver.Driver"
+}
+
+task runWithJavaExec {
+    dependsOn sourceSets.main.runtimeClasspath
+    doLast {
+        project.javaexec {
+            if (run.executable) {
+                executable run.executable
+            }
+            classpath = run.classpath
+            mainClass = run.mainClass
+            args run.args
+        }
+    }
+}
+
+tasks.register("runWithExecOperations") {
+    dependsOn sourceSets.main.runtimeClasspath
+    def runExecutable = run.executable ? run.executable : null
+    def runClasspath = run.classpath
+    def runMain = run.mainClass
+    def runArgs = run.args
+    def execOps = services.get(ExecOperations)
+    doLast {
+        execOps.javaexec {
+            if (runExecutable) {
+                executable = runExecutable
+            }
+            classpath = runClasspath
+            mainClass = runMain
+            args runArgs
+        }
+    }
+}
+
+def process = "getconf ARG_MAX".execute()
+def argMax = Integer.parseInt(process.text.trim())
+
+private static List<String> getLongCommandLine(int maxCommandLength = 2097152) {
+    final int maxIndividualArgLength = 65530
+    List<String> result = new ArrayList<>()
+    while (maxCommandLength > 0) {
+        result.add('a' * maxIndividualArgLength)
+        maxCommandLength -= maxIndividualArgLength
+    }
+
+    return result
+}
+
+def veryLongFileNames = getLongCommandLine(argMax)
+
+extraClasspath.from(veryLongFileNames.join())
